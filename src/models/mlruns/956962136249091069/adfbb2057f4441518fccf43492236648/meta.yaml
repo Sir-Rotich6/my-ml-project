@@ -1,0 +1,14 @@
+artifact_uri: file:C:/WINDOWS/system32/my-ml-project/src/models/mlruns/956962136249091069/adfbb2057f4441518fccf43492236648/artifacts
+end_time: 1777142870379
+entry_point_name: ''
+experiment_id: '956962136249091069'
+lifecycle_stage: active
+run_id: adfbb2057f4441518fccf43492236648
+run_name: tuned_xgboost
+source_name: ''
+source_type: 4
+source_version: ''
+start_time: 1777142819415
+status: 3
+tags: []
+user_id: SirRotich

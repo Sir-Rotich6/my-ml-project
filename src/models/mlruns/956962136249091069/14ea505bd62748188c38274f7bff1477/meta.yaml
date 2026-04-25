@@ -1,0 +1,14 @@
+artifact_uri: file:C:/WINDOWS/system32/my-ml-project/src/models/mlruns/956962136249091069/14ea505bd62748188c38274f7bff1477/artifacts
+end_time: 1777142819363
+entry_point_name: ''
+experiment_id: '956962136249091069'
+lifecycle_stage: active
+run_id: 14ea505bd62748188c38274f7bff1477
+run_name: baseline
+source_name: ''
+source_type: 4
+source_version: ''
+start_time: 1777142814130
+status: 3
+tags: []
+user_id: SirRotich
