@@ -1,8 +1,0 @@
-artifact_location: file:C:/WINDOWS/system32/my-ml-project/src/models/mlruns/956962136249091069
-creation_time: 1777142802868
-experiment_id: '956962136249091069'
-last_update_time: 1777142802868
-lifecycle_stage: active
-name: fraud-detection
-trace_location: null
-workspace: default
