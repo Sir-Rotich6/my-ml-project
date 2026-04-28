@@ -1,5 +1,9 @@
-/data/
-/models/
+# Large data files — download separately (see README)
+/data/*.csv
+/data/*.parquet
+# Trained model binaries — reproduced by running the training pipeline
+/models/*.pkl
+/models/*.pkl.gz
 mlruns/
 .env
 __pycache__/

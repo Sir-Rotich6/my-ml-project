@@ -1,0 +1,8 @@
+-r requirements.txt
+optuna
+mlflow
+fastapi
+uvicorn
+great-expectations
+pytest
+ruff
