@@ -2,7 +2,7 @@
 
 > Real-time binary fraud classifier trained on 284K transactions — XGBoost + Optuna tuning achieves **AUPRC 0.81**, **precision 84%**, **recall 80%** on a dataset with only 0.17% fraud.
 
-**[Live Demo →](https://your-app.streamlit.app)** *(deploy link — replace after Streamlit Cloud deployment)*
+**[Live Demo →](https://credit-card-fraid-detection.streamlit.app)**
 
 ---
 
