@@ -8,6 +8,13 @@ sys.path.insert(0, str(Path(__file__).parents[1] / "src" / "features"))
 
 from engineering import create_features, select_features
 
+_NEW_FEATURE_NAMES = frozenset([
+    "is_small_amount", "amount_log", "is_large_amount",
+    "hour_of_day", "is_night", "is_round_amount",
+    "v_mean", "v_std", "v_l2_norm", "v_max_abs",
+    "amount_x_v14", "v12_x_v14", "night_x_large", "v14_minus_v17",
+])
+
 
 @pytest.fixture
 def base_df():
@@ -27,6 +34,17 @@ def base_df():
 def test_create_features_adds_columns(base_df):
     result = create_features(base_df)
     assert result.shape[1] > base_df.shape[1]
+
+
+def test_create_features_adds_exactly_14_columns(base_df):
+    result = create_features(base_df)
+    assert result.shape[1] == base_df.shape[1] + 14
+
+
+def test_create_features_new_column_names_match(base_df):
+    result = create_features(base_df)
+    added = set(result.columns) - set(base_df.columns)
+    assert added == _NEW_FEATURE_NAMES
 
 
 def test_create_features_does_not_modify_input(base_df):
@@ -54,29 +72,120 @@ def test_interaction_features_present(base_df):
         assert col in result.columns, f"Missing: {col}"
 
 
-def test_is_small_amount_binary(base_df):
-    result = create_features(base_df)
-    assert set(result["is_small_amount"].unique()).issubset({0, 1})
+# ── Feature range tests ───────────────────────────────────────────────────
+
+class TestFeatureRanges:
+    def test_is_small_amount_binary(self, base_df):
+        result = create_features(base_df)
+        assert set(result["is_small_amount"].unique()).issubset({0, 1})
+
+    def test_is_large_amount_binary(self, base_df):
+        result = create_features(base_df)
+        assert set(result["is_large_amount"].unique()).issubset({0, 1})
+
+    def test_is_night_binary(self, base_df):
+        result = create_features(base_df)
+        assert set(result["is_night"].unique()).issubset({0, 1})
+
+    def test_is_round_amount_binary(self, base_df):
+        result = create_features(base_df)
+        assert set(result["is_round_amount"].unique()).issubset({0, 1})
+
+    def test_night_x_large_binary(self, base_df):
+        result = create_features(base_df)
+        assert set(result["night_x_large"].unique()).issubset({0, 1})
+
+    def test_amount_log_non_negative(self, base_df):
+        result = create_features(base_df)
+        assert (result["amount_log"] >= 0).all()
+
+    def test_v_l2_norm_positive(self, base_df):
+        result = create_features(base_df)
+        assert (result["v_l2_norm"] > 0).all()
+
+    def test_v_max_abs_non_negative(self, base_df):
+        result = create_features(base_df)
+        assert (result["v_max_abs"] >= 0).all()
+
+    def test_hour_of_day_range(self, base_df):
+        result = create_features(base_df)
+        assert result["hour_of_day"].between(0, 23).all()
+
+    def test_is_small_amount_threshold(self, base_df):
+        result = create_features(base_df)
+        assert (result.loc[result["Amount"] < 10, "is_small_amount"] == 1).all()
+        assert (result.loc[result["Amount"] >= 10, "is_small_amount"] == 0).all()
+
+    def test_is_large_amount_threshold(self, base_df):
+        result = create_features(base_df)
+        assert (result.loc[result["Amount"] > 1000, "is_large_amount"] == 1).all()
+        assert (result.loc[result["Amount"] <= 1000, "is_large_amount"] == 0).all()
+
+    def test_amount_log_zero_for_zero_amount(self):
+        df = pd.DataFrame({
+            **{f"V{i}": [0.0] for i in range(1, 29)},
+            "Time": [0.0], "Amount": [0.0], "Class": [0],
+        })
+        result = create_features(df)
+        assert result["amount_log"].iloc[0] == pytest.approx(0.0)
 
 
-def test_amount_log_non_negative(base_df):
-    result = create_features(base_df)
-    assert (result["amount_log"] >= 0).all()
-
-
-def test_hour_of_day_range(base_df):
-    result = create_features(base_df)
-    assert result["hour_of_day"].between(0, 23).all()
-
-
-def test_v_l2_norm_positive(base_df):
-    result = create_features(base_df)
-    assert (result["v_l2_norm"] > 0).all()
-
+# ── No NaN tests ──────────────────────────────────────────────────────────
 
 def test_no_nulls_introduced(base_df):
     result = create_features(base_df)
     assert result.isnull().sum().sum() == 0
+
+
+def test_no_nulls_on_zero_amount():
+    df = pd.DataFrame({
+        **{f"V{i}": np.random.randn(100) for i in range(1, 29)},
+        "Time": np.linspace(0, 86400, 100),
+        "Amount": [0.0] * 100,
+        "Class": [0] * 100,
+    })
+    result = create_features(df)
+    assert result.isnull().sum().sum() == 0
+
+
+# ── Mathematical identity tests ───────────────────────────────────────────
+
+class TestFeatureMath:
+    def test_amount_log_equals_log1p(self, base_df):
+        result = create_features(base_df)
+        expected = np.log1p(base_df["Amount"])
+        pd.testing.assert_series_equal(
+            result["amount_log"].reset_index(drop=True),
+            expected.reset_index(drop=True),
+            check_names=False,
+        )
+
+    def test_v14_minus_v17_identity(self, base_df):
+        result = create_features(base_df)
+        expected = base_df["V14"] - base_df["V17"]
+        pd.testing.assert_series_equal(
+            result["v14_minus_v17"].reset_index(drop=True),
+            expected.reset_index(drop=True),
+            check_names=False,
+        )
+
+    def test_amount_x_v14_identity(self, base_df):
+        result = create_features(base_df)
+        expected = np.log1p(base_df["Amount"]) * base_df["V14"]
+        pd.testing.assert_series_equal(
+            result["amount_x_v14"].reset_index(drop=True),
+            expected.reset_index(drop=True),
+            check_names=False,
+        )
+
+    def test_v12_x_v14_identity(self, base_df):
+        result = create_features(base_df)
+        expected = base_df["V12"] * base_df["V14"]
+        pd.testing.assert_series_equal(
+            result["v12_x_v14"].reset_index(drop=True),
+            expected.reset_index(drop=True),
+            check_names=False,
+        )
 
 
 # ── select_features ───────────────────────────────────────────────────────
@@ -103,7 +212,6 @@ def test_select_features_target_not_in_selected(base_df):
 def test_select_features_removes_high_corr(base_df):
     df_feat = create_features(base_df)
     selected, _ = select_features(df_feat, target_col="Class", corr_threshold=0.95)
-    # v_std and v_l2_norm should be dropped (|r| > 0.95 with v_max_abs)
     assert not ("v_std" in selected and "v_l2_norm" in selected)
 
 
